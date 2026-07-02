@@ -1,0 +1,277 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.42.1.51946",
+      "templateHash": "12733442469654790417"
+    }
+  },
+  "parameters": {
+    "mspOfferName": {
+      "type": "string",
+      "defaultValue": "Microsoft Sentinel Multi-Tenant Accelerator",
+      "metadata": {
+        "description": "Display name of the delegation offer shown in the Azure \"Service providers\" blade."
+      }
+    },
+    "mspOfferDescription": {
+      "type": "string",
+      "defaultValue": "Delegated Microsoft Sentinel operations on this resource group for a service provider (MSSP). Three operator tiers share standing operational access; Tier 3 can elevate just-in-time to Sentinel Contributor and Logic App Contributor.",
+      "metadata": {
+        "description": "Description of the delegation offer."
+      }
+    },
+    "managedByTenantId": {
+      "type": "string",
+      "metadata": {
+        "description": "Tenant ID (GUID) of the SERVICE PROVIDER / MSSP tenant whose groups receive delegated access."
+      }
+    },
+    "rgName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the target Microsoft Sentinel resource group (in THIS subscription) to delegate."
+      }
+    },
+    "tier1GroupId": {
+      "type": "string",
+      "metadata": {
+        "description": "Object ID (GUID) of the Tier 1 operators security group in the provider tenant."
+      }
+    },
+    "tier2GroupId": {
+      "type": "string",
+      "metadata": {
+        "description": "Object ID (GUID) of the Tier 2 operators security group in the provider tenant."
+      }
+    },
+    "tier3GroupId": {
+      "type": "string",
+      "metadata": {
+        "description": "Object ID (GUID) of the Tier 3 operators security group in the provider tenant."
+      }
+    },
+    "tier1GroupName": {
+      "type": "string",
+      "defaultValue": "MSSP Tier 1 Operators",
+      "metadata": {
+        "description": "Friendly name for the Tier 1 group (shown in the portal delegation view)."
+      }
+    },
+    "tier2GroupName": {
+      "type": "string",
+      "defaultValue": "MSSP Tier 2 Operators",
+      "metadata": {
+        "description": "Friendly name for the Tier 2 group."
+      }
+    },
+    "tier3GroupName": {
+      "type": "string",
+      "defaultValue": "MSSP Tier 3 Operators",
+      "metadata": {
+        "description": "Friendly name for the Tier 3 group."
+      }
+    },
+    "standingRoleDefinitionIds": {
+      "type": "array",
+      "defaultValue": [
+        "3e150937-b8fe-4cfb-8069-0eaf05ecd056",
+        "51d6186e-6489-4900-b93f-92e23144cca5",
+        "acdd72a7-3385-48ef-bd42-f606fba81ae7"
+      ],
+      "metadata": {
+        "description": "Standing (always-on) built-in role GUIDs granted to ALL three tiers on the resource group. Defaults: Microsoft Sentinel Responder, Microsoft Sentinel Playbook Operator, Reader. None carry Microsoft.Authorization/*/write, so they are valid for standing delegation."
+      }
+    },
+    "tier3EligibleRoleDefinitionIds": {
+      "type": "array",
+      "defaultValue": [
+        "ab8e14d6-4a74-4a29-9ba8-549422addade",
+        "87a39d53-fc1b-424a-814c-f7e04687dc9e"
+      ],
+      "metadata": {
+        "description": "Built-in role GUIDs that Tier 3 can activate just-in-time (PIM) on the resource group. Defaults: Microsoft Sentinel Contributor, Logic App Contributor."
+      }
+    },
+    "pimMaxActivationDuration": {
+      "type": "string",
+      "defaultValue": "PT8H",
+      "metadata": {
+        "description": "Maximum PIM activation duration for Tier 3 eligible roles, as an ISO 8601 duration (e.g. PT8H = 8 hours)."
+      }
+    },
+    "pimRequireMfa": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Require Azure Multi-Factor Authentication when Tier 3 activates an eligible role."
+      }
+    }
+  },
+  "variables": {
+    "copy": [
+      {
+        "name": "tier1StandingAuth",
+        "count": "[length(parameters('standingRoleDefinitionIds'))]",
+        "input": {
+          "principalId": "[parameters('tier1GroupId')]",
+          "principalIdDisplayName": "[parameters('tier1GroupName')]",
+          "roleDefinitionId": "[parameters('standingRoleDefinitionIds')[copyIndex('tier1StandingAuth')]]"
+        }
+      },
+      {
+        "name": "tier2StandingAuth",
+        "count": "[length(parameters('standingRoleDefinitionIds'))]",
+        "input": {
+          "principalId": "[parameters('tier2GroupId')]",
+          "principalIdDisplayName": "[parameters('tier2GroupName')]",
+          "roleDefinitionId": "[parameters('standingRoleDefinitionIds')[copyIndex('tier2StandingAuth')]]"
+        }
+      },
+      {
+        "name": "tier3StandingAuth",
+        "count": "[length(parameters('standingRoleDefinitionIds'))]",
+        "input": {
+          "principalId": "[parameters('tier3GroupId')]",
+          "principalIdDisplayName": "[parameters('tier3GroupName')]",
+          "roleDefinitionId": "[parameters('standingRoleDefinitionIds')[copyIndex('tier3StandingAuth')]]"
+        }
+      },
+      {
+        "name": "eligibleAuthorizations",
+        "count": "[length(parameters('tier3EligibleRoleDefinitionIds'))]",
+        "input": {
+          "principalId": "[parameters('tier3GroupId')]",
+          "principalIdDisplayName": "[parameters('tier3GroupName')]",
+          "roleDefinitionId": "[parameters('tier3EligibleRoleDefinitionIds')[copyIndex('eligibleAuthorizations')]]",
+          "justInTimeAccessPolicy": "[variables('jitAccessPolicy')]"
+        }
+      }
+    ],
+    "standingAuthorizations": "[concat(variables('tier1StandingAuth'), variables('tier2StandingAuth'), variables('tier3StandingAuth'))]",
+    "jitAccessPolicy": {
+      "multiFactorAuthProvider": "[if(parameters('pimRequireMfa'), 'Azure', 'None')]",
+      "maximumActivationDuration": "[parameters('pimMaxActivationDuration')]"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ManagedServices/registrationDefinitions",
+      "apiVersion": "2022-10-01",
+      "name": "[guid(parameters('mspOfferName'), parameters('managedByTenantId'), subscription().subscriptionId)]",
+      "properties": {
+        "registrationDefinitionName": "[parameters('mspOfferName')]",
+        "description": "[parameters('mspOfferDescription')]",
+        "managedByTenantId": "[parameters('managedByTenantId')]",
+        "authorizations": "[variables('standingAuthorizations')]",
+        "eligibleAuthorizations": "[variables('eligibleAuthorizations')]"
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "sentinelLighthouseAssignment",
+      "resourceGroup": "[parameters('rgName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "registrationDefinitionId": {
+            "value": "[subscriptionResourceId('Microsoft.ManagedServices/registrationDefinitions', guid(parameters('mspOfferName'), parameters('managedByTenantId'), subscription().subscriptionId))]"
+          },
+          "mspOfferName": {
+            "value": "[parameters('mspOfferName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "9937438805686678155"
+            }
+          },
+          "parameters": {
+            "registrationDefinitionId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the parent registration definition (subscription scope)."
+              }
+            },
+            "mspOfferName": {
+              "type": "string",
+              "metadata": {
+                "description": "Delegation offer name — used to derive a stable assignment GUID."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ManagedServices/registrationAssignments",
+              "apiVersion": "2022-10-01",
+              "name": "[guid(resourceGroup().id, parameters('mspOfferName'))]",
+              "properties": {
+                "registrationDefinitionId": "[parameters('registrationDefinitionId')]"
+              }
+            }
+          ],
+          "outputs": {
+            "registrationAssignmentId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the registration assignment (scoped to this resource group)."
+              },
+              "value": "[resourceId('Microsoft.ManagedServices/registrationAssignments', guid(resourceGroup().id, parameters('mspOfferName')))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.ManagedServices/registrationDefinitions', guid(parameters('mspOfferName'), parameters('managedByTenantId'), subscription().subscriptionId))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "mspOfferName": {
+      "type": "string",
+      "metadata": {
+        "description": "The delegation offer name as registered."
+      },
+      "value": "[parameters('mspOfferName')]"
+    },
+    "registrationDefinitionId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of the registration definition."
+      },
+      "value": "[subscriptionResourceId('Microsoft.ManagedServices/registrationDefinitions', guid(parameters('mspOfferName'), parameters('managedByTenantId'), subscription().subscriptionId))]"
+    },
+    "registrationAssignmentId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of the registration assignment (scoped to the resource group)."
+      },
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'sentinelLighthouseAssignment'), '2025-04-01').outputs.registrationAssignmentId.value]"
+    },
+    "standingAuthorizationCount": {
+      "type": "int",
+      "metadata": {
+        "description": "Count of standing authorizations created (tiers x standing roles)."
+      },
+      "value": "[length(variables('standingAuthorizations'))]"
+    },
+    "eligibleAuthorizationCount": {
+      "type": "int",
+      "metadata": {
+        "description": "Count of Tier 3 eligible (PIM) authorizations created."
+      },
+      "value": "[length(variables('eligibleAuthorizations'))]"
+    }
+  }
+}

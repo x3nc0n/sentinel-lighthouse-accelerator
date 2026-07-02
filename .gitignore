@@ -1,0 +1,11 @@
+# Local / editor
+.vscode/
+*.tmp
+*.log
+
+# Bicep
+!azuredeploy.json
+
+# OS
+.DS_Store
+Thumbs.db

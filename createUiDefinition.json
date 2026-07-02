@@ -1,0 +1,197 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+  "handler": "Microsoft.Azure.CreateUIDef",
+  "version": "0.1.2-preview",
+  "parameters": {
+    "config": {
+      "isWizard": false,
+      "basics": {
+        "description": "**Microsoft Sentinel Multi-Tenant Lighthouse Accelerator**\n\nDelegate one resource group (your Microsoft Sentinel RG) to a service provider / MSSP tenant. All three operator tiers get the same standing access; Tier 3 can elevate just-in-time to Sentinel Contributor and Logic App Contributor.\n\n> Deploy this as an admin of the tenant that OWNS the Sentinel resource group. Select that subscription above, and enter the resource group name below."
+      }
+    },
+    "basics": [
+      {
+        "name": "rgName",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Target Sentinel resource group name",
+        "toolTip": "Name of the EXISTING resource group (in the subscription selected above) that contains your Microsoft Sentinel workspace. Only this resource group is delegated.",
+        "constraints": {
+          "required": true,
+          "validations": [
+            {
+              "regex": "^[-\\w\\._\\(\\)]{1,90}$",
+              "message": "Enter a valid resource group name."
+            }
+          ]
+        }
+      },
+      {
+        "name": "mspOfferName",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Delegation offer name",
+        "defaultValue": "Microsoft Sentinel Multi-Tenant Accelerator",
+        "toolTip": "Friendly name shown in the Azure 'Service providers' blade.",
+        "constraints": {
+          "required": true,
+          "validations": [
+            {
+              "regex": "^.{2,120}$",
+              "message": "Enter 2-120 characters."
+            }
+          ]
+        }
+      },
+      {
+        "name": "managedByTenantId",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Service provider (MSSP) tenant ID",
+        "toolTip": "GUID of the PROVIDER tenant whose security groups receive delegated access. This is NOT your own tenant.",
+        "constraints": {
+          "required": true,
+          "validations": [
+            {
+              "regex": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
+              "message": "Enter a valid tenant GUID."
+            }
+          ]
+        }
+      }
+    ],
+    "steps": [
+      {
+        "name": "tiers",
+        "label": "Operator Tiers",
+        "elements": [
+          {
+            "name": "tiersInfo",
+            "type": "Microsoft.Common.InfoBox",
+            "visible": true,
+            "options": {
+              "icon": "Info",
+              "text": "Provide the object IDs of three security groups in the provider tenant. All three tiers receive the same standing roles (Sentinel Responder, Sentinel Playbook Operator, Reader). Tier 3 additionally becomes eligible for just-in-time elevation (next step)."
+            }
+          },
+          {
+            "name": "tier1GroupId",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Tier 1 group object ID",
+            "toolTip": "Object ID (GUID) of the Tier 1 operators security group in the provider tenant.",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
+                  "message": "Enter a valid group object GUID."
+                }
+              ]
+            }
+          },
+          {
+            "name": "tier1GroupName",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Tier 1 group display name",
+            "defaultValue": "MSSP Tier 1 Operators",
+            "toolTip": "Friendly name shown in the portal delegation view.",
+            "constraints": { "required": true }
+          },
+          {
+            "name": "tier2GroupId",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Tier 2 group object ID",
+            "toolTip": "Object ID (GUID) of the Tier 2 operators security group in the provider tenant.",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
+                  "message": "Enter a valid group object GUID."
+                }
+              ]
+            }
+          },
+          {
+            "name": "tier2GroupName",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Tier 2 group display name",
+            "defaultValue": "MSSP Tier 2 Operators",
+            "toolTip": "Friendly name shown in the portal delegation view.",
+            "constraints": { "required": true }
+          },
+          {
+            "name": "tier3GroupId",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Tier 3 group object ID",
+            "toolTip": "Object ID (GUID) of the Tier 3 operators security group in the provider tenant. This tier also gets the PIM elevation path.",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
+                  "message": "Enter a valid group object GUID."
+                }
+              ]
+            }
+          },
+          {
+            "name": "tier3GroupName",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Tier 3 group display name",
+            "defaultValue": "MSSP Tier 3 Operators",
+            "toolTip": "Friendly name shown in the portal delegation view.",
+            "constraints": { "required": true }
+          }
+        ]
+      },
+      {
+        "name": "pim",
+        "label": "Tier 3 Just-in-Time (PIM)",
+        "elements": [
+          {
+            "name": "pimInfo",
+            "type": "Microsoft.Common.InfoBox",
+            "visible": true,
+            "options": {
+              "icon": "Info",
+              "text": "Tier 3 operators can activate these elevated roles on demand (Microsoft Sentinel Contributor and Logic App Contributor). Access is time-bound and revoked automatically when the activation expires."
+            }
+          },
+          {
+            "name": "pimDuration",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Maximum activation duration",
+            "defaultValue": "8 hours",
+            "toolTip": "How long a Tier 3 activation stays active before automatic expiry.",
+            "constraints": {
+              "allowedValues": [
+                { "label": "1 hour", "value": "PT1H" },
+                { "label": "2 hours", "value": "PT2H" },
+                { "label": "4 hours", "value": "PT4H" },
+                { "label": "8 hours", "value": "PT8H" }
+              ],
+              "required": true
+            }
+          },
+          {
+            "name": "pimRequireMfa",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Require Azure MFA to activate",
+            "toolTip": "Strongly recommended. When checked, Tier 3 must satisfy Azure Multi-Factor Authentication before an eligible role activates."
+          }
+        ]
+      }
+    ],
+    "outputs": {
+      "mspOfferName": "[basics('mspOfferName')]",
+      "managedByTenantId": "[basics('managedByTenantId')]",
+      "rgName": "[basics('rgName')]",
+      "tier1GroupId": "[steps('tiers').tier1GroupId]",
+      "tier1GroupName": "[steps('tiers').tier1GroupName]",
+      "tier2GroupId": "[steps('tiers').tier2GroupId]",
+      "tier2GroupName": "[steps('tiers').tier2GroupName]",
+      "tier3GroupId": "[steps('tiers').tier3GroupId]",
+      "tier3GroupName": "[steps('tiers').tier3GroupName]",
+      "pimMaxActivationDuration": "[steps('pim').pimDuration]",
+      "pimRequireMfa": "[steps('pim').pimRequireMfa]"
+    }
+  }
+}
