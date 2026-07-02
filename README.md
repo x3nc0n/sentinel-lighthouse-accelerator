@@ -97,7 +97,9 @@ The tier model is a direct implementation of Microsoft's
 | `tier3EligibleRoleDefinitionIds` | | Sentinel Contributor, Logic App Contributor | Tier 3 PIM roles. |
 | `pimMaxActivationDuration` | | `PT8H` | ISO-8601 max activation time for Tier 3. |
 | `pimRequireMfa` | | `true` | Require Azure MFA for Tier 3 activation. |
-| `includeDeleteRole` | | `true` | Grant Tier 3 the *Managed Services Registration assignment Delete Role* so the provider can offboard the delegation itself. No data access. Set `false` to omit. |
+
+> Tier 3 is always also granted the *Managed Services Registration assignment Delete Role* as an
+> offboarding safeguard — see [Ending the delegation](#ending-the-delegation-offboarding).
 
 ---
 
@@ -110,7 +112,7 @@ Either side can remove the delegation at any time:
   ```bash
   az managedservices assignment delete --assignment <assignmentId> --scope /subscriptions/<subId>/resourceGroups/<rgName>
   ```
-- **Provider** (when `includeDeleteRole` is `true`) — Tier 3 operators hold the built-in
+- **Provider** — Tier 3 operators hold the built-in
   **Managed Services Registration assignment Delete Role**, so they can delete the
   `registrationAssignment` from the customer scope even if the customer never offboards it. This is a
   break-glass for MSSP relationships that end without the customer completing offboarding. The role

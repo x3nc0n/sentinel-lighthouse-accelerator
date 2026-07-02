@@ -34,9 +34,6 @@
     },
     "pimRequireMfa": {
       "value": true
-    },
-    "includeDeleteRole": {
-      "value": true
     }
   }
 }

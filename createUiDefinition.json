@@ -183,7 +183,7 @@
             "visible": true,
             "options": {
               "icon": "Info",
-              "text": "Offboarding safeguard: the provider's Tier 3 group is also granted the built-in 'Managed Services Registration assignment Delete Role'. This role grants NO access to your data or resources — it only lets the provider remove this delegation if you ever stop the relationship without offboarding it yourself. You can still remove the delegation at any time from Service providers > Delegations. (To omit this role, deploy via CLI with includeDeleteRole=false.)"
+              "text": "Offboarding safeguard: the provider's Tier 3 group is also granted the built-in 'Managed Services Registration assignment Delete Role'. This role grants NO access to your data or resources — it only lets the provider remove this delegation if you ever stop the relationship without offboarding it yourself. You can still remove the delegation at any time from Service providers > Delegations."
             }
           }
         ]

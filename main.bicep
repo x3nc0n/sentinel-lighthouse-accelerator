@@ -70,12 +70,10 @@ param pimMaxActivationDuration string = 'PT8H'
 @description('Require Azure Multi-Factor Authentication when Tier 3 activates an eligible role.')
 param pimRequireMfa bool = true
 
-@description('Also grant the provider the built-in "Managed Services Registration assignment Delete Role" so provider-side admins can remove this delegation themselves if the customer never offboards it. This role grants NO access to customer data or resources — it can only delete the Lighthouse delegation. Assigned as a standing role to the Tier 3 group.')
-param includeDeleteRole bool = true
-
-// Built-in "Managed Services Registration assignment Delete Role". Lets the assigned
-// provider principal delete the registrationAssignment (end the delegation) from the
-// customer tenant. It carries no data-plane or resource permissions.
+// Built-in "Managed Services Registration assignment Delete Role". Always granted to the
+// Tier 3 group so provider-side admins can remove this delegation themselves if the customer
+// never offboards it. This role carries no data-plane or resource permissions — it can only
+// delete the Lighthouse delegation.
 var deleteRoleDefinitionId = '91c1777a-f3dc-4fae-b103-61d183457e46'
 
 // ----------------------------------------------------------------------------
@@ -105,15 +103,15 @@ var tier3StandingAuth = [
   }
 ]
 
-// Optional break-glass: provider-side ability to remove the delegation. Granted to
-// the Tier 3 group only, as a standing role (it exposes no customer data).
-var deleteRoleAuth = includeDeleteRole ? [
+// Break-glass: provider-side ability to remove the delegation. Always granted to the
+// Tier 3 group as a standing role (it exposes no customer data).
+var deleteRoleAuth = [
   {
     principalId: tier3GroupId
     principalIdDisplayName: tier3GroupName
     roleDefinitionId: deleteRoleDefinitionId
   }
-] : []
+]
 
 var standingAuthorizations = concat(tier1StandingAuth, tier2StandingAuth, tier3StandingAuth, deleteRoleAuth)
 
@@ -176,6 +174,3 @@ output standingAuthorizationCount int = length(standingAuthorizations)
 
 @description('Count of Tier 3 eligible (PIM) authorizations created.')
 output eligibleAuthorizationCount int = length(eligibleAuthorizations)
-
-@description('Whether the provider-side "Managed Services Registration assignment Delete Role" was granted to Tier 3.')
-output deleteRoleGranted bool = includeDeleteRole

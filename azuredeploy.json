@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "17256611894594327822"
+      "templateHash": "16338998288615964105"
     }
   },
   "parameters": {
@@ -108,13 +108,6 @@
       "metadata": {
         "description": "Require Azure Multi-Factor Authentication when Tier 3 activates an eligible role."
       }
-    },
-    "includeDeleteRole": {
-      "type": "bool",
-      "defaultValue": true,
-      "metadata": {
-        "description": "Also grant the provider the built-in \"Managed Services Registration assignment Delete Role\" so provider-side admins can remove this delegation themselves if the customer never offboards it. This role grants NO access to customer data or resources — it can only delete the Lighthouse delegation. Assigned as a standing role to the Tier 3 group."
-      }
     }
   },
   "variables": {
@@ -158,7 +151,13 @@
       }
     ],
     "deleteRoleDefinitionId": "91c1777a-f3dc-4fae-b103-61d183457e46",
-    "deleteRoleAuth": "[if(parameters('includeDeleteRole'), createArray(createObject('principalId', parameters('tier3GroupId'), 'principalIdDisplayName', parameters('tier3GroupName'), 'roleDefinitionId', variables('deleteRoleDefinitionId'))), createArray())]",
+    "deleteRoleAuth": [
+      {
+        "principalId": "[parameters('tier3GroupId')]",
+        "principalIdDisplayName": "[parameters('tier3GroupName')]",
+        "roleDefinitionId": "[variables('deleteRoleDefinitionId')]"
+      }
+    ],
     "standingAuthorizations": "[concat(variables('tier1StandingAuth'), variables('tier2StandingAuth'), variables('tier3StandingAuth'), variables('deleteRoleAuth'))]",
     "jitAccessPolicy": {
       "multiFactorAuthProvider": "[if(parameters('pimRequireMfa'), 'Azure', 'None')]",
@@ -281,13 +280,6 @@
         "description": "Count of Tier 3 eligible (PIM) authorizations created."
       },
       "value": "[length(variables('eligibleAuthorizations'))]"
-    },
-    "deleteRoleGranted": {
-      "type": "bool",
-      "metadata": {
-        "description": "Whether the provider-side \"Managed Services Registration assignment Delete Role\" was granted to Tier 3."
-      },
-      "value": "[parameters('includeDeleteRole')]"
     }
   }
 }
