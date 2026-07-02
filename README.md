@@ -27,6 +27,7 @@ hand-craft a big `authorizations` JSON array. You just provide **three group obj
 
 All three tiers share the same **standing** roles. Only **Tier 3** can elevate on demand to the two
 broader roles, which expire automatically after the configured duration (default 8 hours, MFA required).
+Tier 3 also holds a delete-only **offboarding safeguard** role — see [Ending the delegation](#ending-the-delegation-offboarding).
 
 ### Built-in roles used
 
@@ -37,6 +38,7 @@ broader roles, which expire automatically after the configured duration (default
 | Reader | `acdd72a7-3385-48ef-bd42-f606fba81ae7` | Standing (all tiers) |
 | Microsoft Sentinel Contributor | `ab8e14d6-4a74-4a29-9ba8-549422addade` | Eligible / PIM (Tier 3) |
 | Logic App Contributor | `87a39d53-fc1b-424a-814c-f7e04687dc9e` | Eligible / PIM (Tier 3) |
+| Managed Services Registration assignment Delete Role | `91c1777a-f3dc-4fae-b103-61d183457e46` | Standing (Tier 3) — offboarding safeguard, no data access |
 
 Every standing role is free of `Microsoft.Authorization/*/write`, which is required for standing
 Lighthouse delegation. Broader access is delivered through the **eligible (PIM)** path instead.
@@ -94,6 +96,27 @@ The tier model is a direct implementation of Microsoft's
 | `tier3EligibleRoleDefinitionIds` | | Sentinel Contributor, Logic App Contributor | Tier 3 PIM roles. |
 | `pimMaxActivationDuration` | | `PT8H` | ISO-8601 max activation time for Tier 3. |
 | `pimRequireMfa` | | `true` | Require Azure MFA for Tier 3 activation. |
+| `includeDeleteRole` | | `true` | Grant Tier 3 the *Managed Services Registration assignment Delete Role* so the provider can offboard the delegation itself. No data access. Set `false` to omit. |
+
+---
+
+## Ending the delegation (offboarding)
+
+Either side can remove the delegation at any time:
+
+- **Customer** — in the Azure portal: **Service providers → Service provider offers → Delegations**,
+  select the offer, and delete it. Or via CLI:
+  ```bash
+  az managedservices assignment delete --assignment <assignmentId> --scope /subscriptions/<subId>/resourceGroups/<rgName>
+  ```
+- **Provider** (when `includeDeleteRole` is `true`) — Tier 3 operators hold the built-in
+  **Managed Services Registration assignment Delete Role**, so they can delete the
+  `registrationAssignment` from the customer scope even if the customer never offboards it. This is a
+  break-glass for MSSP relationships that end without the customer completing offboarding. The role
+  grants **no** access to customer data or resources — only the ability to remove the delegation.
+
+> Deleting the **assignment** revokes all delegated access to the resource group. The
+> **registration definition** (the offer) can remain for reuse, or be deleted separately.
 
 ---
 
