@@ -23,11 +23,12 @@ hand-craft a big `authorizations` JSON array. You just provide **three group obj
 |------|-----------------------------|--------------------|
 | **Tier 1** | Sentinel Responder · Sentinel Playbook Operator · Reader | — |
 | **Tier 2** | Sentinel Responder · Sentinel Playbook Operator · Reader | — |
-| **Tier 3** | Sentinel Responder · Sentinel Playbook Operator · Reader | **Sentinel Contributor** · **Logic App Contributor** (time-bound, MFA) |
+| **Tier 3** | Sentinel Responder · Sentinel Playbook Operator · Reader · *Delegation Delete Role* † | **Sentinel Contributor** · **Logic App Contributor** (time-bound, MFA) |
 
 All three tiers share the same **standing** roles. Only **Tier 3** can elevate on demand to the two
 broader roles, which expire automatically after the configured duration (default 8 hours, MFA required).
-Tier 3 also holds a delete-only **offboarding safeguard** role — see [Ending the delegation](#ending-the-delegation-offboarding).
+† Tier 3 also holds a delete-only **offboarding safeguard** (Managed Services Registration assignment
+Delete Role) — no data access, provider-side removal only. See [Ending the delegation](#ending-the-delegation-offboarding).
 
 ### Built-in roles used
 
