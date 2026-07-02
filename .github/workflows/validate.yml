@@ -1,0 +1,42 @@
+name: Validate Bicep
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  bicep-build-and-drift:
+    name: Build Bicep and check azuredeploy.json is in sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Bicep CLI
+        run: az bicep install
+
+      - name: Build Bicep (compile + lint)
+        run: az bicep build --file main.bicep --outfile azuredeploy.generated.json
+
+      - name: Verify committed azuredeploy.json matches main.bicep
+        run: |
+          # Ignore _generator (Bicep version / templateHash) at any nesting level so the
+          # check is stable across Bicep CLI versions.
+          filter='walk(if type == "object" and has("_generator") then del(._generator) else . end)'
+          if ! diff <(jq -S "$filter" azuredeploy.json) <(jq -S "$filter" azuredeploy.generated.json) > /dev/null; then
+            echo "::error::azuredeploy.json is out of date. Run: az bicep build --file main.bicep --outfile azuredeploy.json"
+            diff <(jq -S "$filter" azuredeploy.json) <(jq -S "$filter" azuredeploy.generated.json) || true
+            exit 1
+          fi
+          echo "azuredeploy.json is in sync with main.bicep."
+
+      - name: Validate JSON assets parse
+        run: |
+          for f in azuredeploy.json azuredeploy.parameters.json createUiDefinition.json; do
+            jq empty "$f" && echo "OK: $f"
+          done

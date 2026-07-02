@@ -41,6 +41,22 @@ broader roles, which expire automatically after the configured duration (default
 Every standing role is free of `Microsoft.Authorization/*/write`, which is required for standing
 Lighthouse delegation. Broader access is delivered through the **eligible (PIM)** path instead.
 
+### Alignment with Microsoft's recommended role assignments
+
+The tier model is a direct implementation of Microsoft's
+[recommended role assignments for Microsoft Sentinel users](https://learn.microsoft.com/en-us/azure/sentinel/roles#recommended-role-assignments-for-microsoft-sentinel-users)
+— analysts get standing access, engineers get elevated access (here, just-in-time):
+
+| Microsoft-recommended user type | Recommended roles (at the Sentinel RG) | This accelerator |
+|---------------------------------|----------------------------------------|------------------|
+| **Security analysts** | Microsoft Sentinel Responder · Microsoft Sentinel Playbook Operator | **Tier 1 & Tier 2** — standing (plus Reader for resource visibility) |
+| **Security engineers** | Microsoft Sentinel Contributor · Logic App Contributor | **Tier 3** — **just-in-time (PIM)**: the same broader access, but time-bound and MFA-gated instead of standing |
+| **Service principal** | Microsoft Sentinel Contributor | Out of scope — grant separately to any automation service principal |
+
+> Microsoft recommends assigning these roles at the **resource group** that contains the Sentinel
+> workspace, so Logic Apps and playbooks in the same RG are covered by one set of assignments. This
+> accelerator delegates exactly that scope.
+
 ---
 
 ## Who deploys this, and where
